@@ -22,7 +22,7 @@ pipeline {
         }
         stage('Récupérer depuis Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/bsidibe91/appli.git'
+                git branch: 'main', url: 'https://github.com/bsidibe91/a-reddit-clone.git'
             }
         }
         stage("Analyse SonarQube") {
