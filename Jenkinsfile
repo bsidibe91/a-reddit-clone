@@ -12,7 +12,7 @@ pipeline {
         DOCKER_PASS = credentials('dockerhub') // Référence au credential de Docker Hub correctement configuré dans Jenkins
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}" // Suppression de la concaténation inutile
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-        SONARQUBE_TOKEN = credentials("sonarqube-token") // Assurez-vous que cet ID d'authentification est correct
+        SONARQUBE_TOKEN = credentials("SonarQube-Token") // Assurez-vous que cet ID d'authentification est correct
     }
     stages {
         stage('Nettoyer l\'espace de travail') {
