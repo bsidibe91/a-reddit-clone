@@ -5,51 +5,50 @@ pipeline {
         nodejs 'node16'
     }
     environment {
-        SCANNER_HOME = tool 'sonar-scanner' // Définition de SCANNER_HOME sans l'option -X
-        APP_NAME = "reddit-clone-pipeline"
+        SCANNER_HOME = tool 'sonar-scanner'
+        APP_NAME = "timeguard-pipeline"
         RELEASE = "1.0.0"
-        DOCKER_USER = "bsidibe2024"
-        DOCKER_PASS = 'dockerhub'
-        IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+        DOCKER_USER = "bsidibe91"
+        DOCKER_PASS = credentials('dockerhub-credentials') // Référence au credential de Docker Hub correctement configuré dans Jenkins
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}" // Suppression de la concaténation inutile
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-	JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        SONARQUBE_TOKEN = credentials("sonarqube-token") // Assurez-vous que cet ID d'authentification est correct
     }
     stages {
-        stage('clean workspace') {
+        stage('Nettoyer l\'espace de travail') {
             steps {
                 cleanWs()
             }
         }
-        stage('Checkout from Git') {
+        stage('Récupérer depuis Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/bsidibe91/a-reddit-clone.git'
+                git branch: 'main', url: 'https://github.com/bsidibe91/appli.git'
             }
         }
-        stage("Sonarqube Analysis") {
+        stage("Analyse SonarQube") {
             steps {
                 withSonarQubeEnv('SonarQube-Server') {
-                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Reddit-Clone-CI \
-                    -Dsonar.projectKey=Reddit-Clone-CI'''
+                    sh """${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectName=TimeGuard \
+                    -Dsonar.projectKey=TimeGuard -Dsonar.login=${SONARQUBE_TOKEN}""" // Ajout de l'authentification avec le token SonarQube
                 }
             }
         }
-        stage("Quality Gate") {
+        stage("Portail de Qualité") {
             steps {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'SonarQube-Token'
                 }
             }
         }
-        stage('Install Dependencies') {
+        stage('Installer les dépendances') {
             steps {
                 sh "npm install"
             }
         }
-        stage('TRIVY FS SCAN') {
+        stage('Analyse Trivy FS') { // Renommé pour suivre la convention
             steps {
                 sh "trivy fs . > trivyfs.txt"
-             }
-
-	}
+            }
+        }
     }
 }
