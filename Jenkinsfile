@@ -6,96 +6,49 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
-        APP_NAME = "reddit-clone-pipeline"
+        APP_NAME = "timeguard-pipeline"
         RELEASE = "1.0.0"
-        DOCKER_USER = "ashfaque9x"
-        DOCKER_PASS = 'dockerhub'
-        IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+        DOCKER_USER = "bsidibe91"
+        DOCKER_PASS = 'dockerhub' // Cette ligne devrait contenir le mot de passe réel de Docker Hub ou une référence aux identifiants de Jenkins
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}" // Suppression de la concaténation inutile
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-	JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN") // Assurez-vous que cet ID d'authentification est correct
     }
     stages {
-        stage('clean workspace') {
+        stage('Nettoyer l'espace de travail') {
             steps {
                 cleanWs()
             }
         }
-        stage('Checkout from Git') {
+        stage('Récupérer depuis Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ashfaque-9x/a-reddit-clone.git'
+                git branch: 'main', url: 'https://github.com/bsidibe91/appli.git'
             }
         }
-        stage("Sonarqube Analysis") {
+        stage("Analyse SonarQube") {
             steps {
                 withSonarQubeEnv('SonarQube-Server') {
-                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Reddit-Clone-CI \
-                    -Dsonar.projectKey=Reddit-Clone-CI'''
+                    sh """${SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectName=TimeGuard \
+                    -Dsonar.projectKey=TimeGuard"
                 }
             }
         }
-        stage("Quality Gate") {
+        stage("Portail de Qualité") {
             steps {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'SonarQube-Token'
                 }
             }
         }
-        stage('Install Dependencies') {
+        stage('Installer les dépendances') {
             steps {
                 sh "npm install"
             }
         }
-        stage('TRIVY FS SCAN') {
+        stage('Analyse Trivy FS') { // Renommé pour suivre la convention
             steps {
                 sh "trivy fs . > trivyfs.txt"
-             }
-         }
-	 stage("Build & Push Docker Image") {
-             steps {
-                 script {
-                     docker.withRegistry('',DOCKER_PASS) {
-                         docker_image = docker.build "${IMAGE_NAME}"
-                     }
-                     docker.withRegistry('',DOCKER_PASS) {
-                         docker_image.push("${IMAGE_TAG}")
-                         docker_image.push('latest')
-                     }
-                 }
-             }
-         }
-	 stage("Trivy Image Scan") {
-             steps {
-                 script {
-	              sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ashfaque9x/reddit-clone-pipeline:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt')
-                 }
-             }
-         }
-	 stage ('Cleanup Artifacts') {
-             steps {
-                 script {
-                      sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                      sh "docker rmi ${IMAGE_NAME}:latest"
-                 }
-             }
-         }
-	 stage("Trigger CD Pipeline") {
-            steps {
-                script {
-                    sh "curl -v -k --user clouduser:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'ec2-65-2-187-142.ap-south-1.compute.amazonaws.com:8080/job/Reddit-Clone-CD/buildWithParameters?token=gitops-token'"
-                }
             }
-         }
-     }
-     post {
-        always {
-           emailext attachLog: true,
-               subject: "'${currentBuild.result}'",
-               body: "Project: ${env.JOB_NAME}<br/>" +
-                   "Build Number: ${env.BUILD_NUMBER}<br/>" +
-                   "URL: ${env.BUILD_URL}<br/>",
-               to: 'ashfaque.s510@gmail.com',                              
-               attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
         }
-     }
-    
+    }
 }
