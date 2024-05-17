@@ -9,7 +9,7 @@ pipeline {
         APP_NAME = "timeguard-pipeline"
         RELEASE = "1.0.0"
         DOCKER_USER = "bsidibe91"
-        DOCKER_PASS = credentials('dockerhub-credentials') // Référence au credential de Docker Hub correctement configuré dans Jenkins
+        DOCKER_PASS = credentials('dockerhub') // Référence au credential de Docker Hub correctement configuré dans Jenkins
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}" // Suppression de la concaténation inutile
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
         SONARQUBE_TOKEN = credentials("sonarqube-token") // Assurez-vous que cet ID d'authentification est correct
